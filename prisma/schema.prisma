@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// enum Role {
+//   GUEST
+//   MANAGER
+//   ADMIN
+//   FOUNDER
+// }
+
+// enum TeamStatus {
+//   PENDING
+//   APPROVED
+//   REJECTED
+//   BLOCKED
+// }
+
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  email         String    @unique
+  password      String
+  image         String?
+  role          String    @default("GUEST") // Role enum
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  team          Team?     @relation("TeamLeader")
+}
+
+model Team {
+  id            String    @id @default(cuid())
+  name          String
+  tag           String
+  logo          String?
+  playerCount   Int
+  mapsCount     Int
+  status        String    @default("PENDING") // TeamStatus enum
+  blockReason   String?
+  isVip         Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  leader        User      @relation("TeamLeader", fields: [leaderId], references: [id])
+  leaderId      String    @unique
+  slots         Slot[]
+}
+
+model Scrim {
+  id            String    @id @default(cuid())
+  startTime     DateTime
+  map           String
+  maxTeams      Int
+  status        String    @default("OPEN") // OPEN, CLOSED, FINISHED
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Room Info (Visible to Managers)
+  roomId        String?
+  roomPass      String?
+
+  // Relations
+  slots         Slot[]
+  results       Result[]
+}
+
+model Slot {
+  id            String    @id @default(cuid())
+  slotNumber    Int
+  
+  scrim         Scrim     @relation(fields: [scrimId], references: [id], onDelete: Cascade)
+  scrimId       String
+  
+  team          Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId        String
+
+  @@unique([scrimId, slotNumber])
+  @@unique([scrimId, teamId])
+}
+
+model Result {
+  id            String    @id @default(cuid())
+  image         String
+  description   String?
+  
+  scrim         Scrim     @relation(fields: [scrimId], references: [id], onDelete: Cascade)
+  scrimId       String
+}
+
+model SystemConfig {
+  key   String @id
+  value String
+}
