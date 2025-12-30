@@ -1,21 +1,28 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
-  const scrims = await prisma.scrim.findMany({
-    where: { status: "OPEN" },
-    orderBy: { startTime: 'asc' },
-    take: 3
-  });
-  const configItems = await prisma.systemConfig.findMany();
-  const config: Record<string, string> = {};
-  configItems.forEach(i => config[i.key] = i.value);
+  let scrims: any[] = [];
+  let config: Record<string, string> = {};
+  let registeredTeams = 0;
+  let finishedScrims = 0;
+  try {
+    scrims = await prisma.scrim.findMany({
+      where: { status: "OPEN" },
+      orderBy: { startTime: 'asc' },
+      take: 3
+    });
+    const configItems = await prisma.systemConfig.findMany();
+    configItems.forEach(i => config[i.key] = i.value);
+    registeredTeams = await prisma.team.count({ where: { status: "APPROVED" } });
+    finishedScrims = await prisma.scrim.count({ where: { status: "FINISHED" } });
+  } catch {}
   const title = config.homepage_title || "PUBG SCRIMS — კონკურენტული ყოველდღიური სკრიმები";
   const subtitle = config.homepage_subtitle || "შექმენი გუნდი, დაიკავე სლოტი და მოიგე";
   const marketing = config.homepage_marketing || "ვარჯიში, კონკურენცია და განვითარება ერთ სივრცეში. Stable სერვერები, გამართული ორგანიზაცია და გამჭვირვალე წესები. შეუერთდი ქართულ PUBG კომუნიტეტის ყველაზე აქტიურ სკრიმ პლატფორმას.";
   const announcement = config.announcement || "";
-  const registeredTeams = await prisma.team.count({ where: { status: "APPROVED" } });
-  const finishedScrims = await prisma.scrim.count({ where: { status: "FINISHED" } });
 
   return (
     <div className="space-y-8">
